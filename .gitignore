@@ -39,6 +39,12 @@ __pycache__/
 *.bin
 *.so
 
+# Entornos
+.env
+backend/.env
+front/.env
+
+
 node_modules/
 front/node_modules/
 backend/node_modules

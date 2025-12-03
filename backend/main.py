@@ -99,19 +99,32 @@ def listar_lugares_categoria(categoria, page=1, per_page=5):
     bloque = lugares[start:end]
 
     if not bloque:
-        return "No hay más resultados para mostrar.", []
+        return "No hay más resultados para mostrar.", [], "No hay más resultados para mostrar."
 
-    texto = f"Lugares de {categoria} (página {page}):\n\n"
+    # 🔹 Texto largo para el CHAT
+    texto_chat = f"Lugares de {categoria}:\n\n"
+
+    # 🔹 Texto corto para la VOZ
+    texto_voz = f"Te dejo algunas opciones de {categoria}. "
+
     maps_list = []
 
-    for lugar in bloque:
+    for i, lugar in enumerate(bloque, start=1):
         nombre = lugar["nombre"]
         direccion = lugar.get("direccion", "Sin dirección")
         telefono = ", ".join(lugar.get("telefonos", []))
         lat = lugar.get("lat", None)
         lng = lugar.get("lng", None)
 
-        texto += f"• {nombre}\n  Dirección: {direccion}\n  Teléfono: {telefono}\n\n"
+        # Chat (completo)
+        texto_chat += (
+            f"• {nombre}\n"
+            f"  Dirección: {direccion}\n"
+            f"  Teléfono: {telefono}\n\n"
+        )
+
+        # Voz (solo nombre + dirección)
+        texto_voz += f"Opción {i}: {nombre}, en {direccion}. "
 
         maps_list.append({
             "nombre": nombre,
@@ -119,13 +132,13 @@ def listar_lugares_categoria(categoria, page=1, per_page=5):
             "lat": lat,
             "lng": lng,
             "maps_url": generar_embed_url(nombre, direccion)
-
         })
 
     if end < len(lugares):
-        texto += "Decime 'mostrar más' para ver más lugares."
+        texto_chat += "Decime 'mostrar más' para ver más lugares."
 
-    return texto.strip(), maps_list
+    return texto_chat.strip(), maps_list, texto_voz.strip()
+
 
 def generar_embed_url(nombre, direccion):
     base = "https://www.google.com/maps/embed/v1/place"
@@ -155,21 +168,28 @@ async def chat_audio(file: UploadFile = File(...)):
             if not categoria:
                 ai_reply = "Primero pedime gastronomía, alojamiento, pesca o transporte."
                 maps_list = []
+                voice_text = ai_reply
             else:
                 session_state["page"] += 1
-                ai_reply, maps_list = listar_lugares_categoria(categoria, session_state["page"])
+                ai_reply, maps_list, voice_text = listar_lugares_categoria(
+                    categoria,
+                    session_state["page"]
+                )
 
         else:
             categoria = detectar_intencion(user_text)
             if categoria:
                 session_state["categoria"] = categoria
                 session_state["page"] = 1
-                ai_reply, maps_list = listar_lugares_categoria(categoria, 1)
+                ai_reply, maps_list, voice_text = listar_lugares_categoria(categoria, 1)
             else:
                 ai_reply = "Decime si buscás gastronomía, alojamiento, pesca o transporte."
                 maps_list = []
+                voice_text = ai_reply
 
-        audio_b64 = await generate_audio_base64(ai_reply)
+
+        audio_b64 = await generate_audio_base64(voice_text)
+
 
         os.remove(temp)
 

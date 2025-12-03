@@ -123,6 +123,22 @@ function App() {
 
       {/* CHAT */}
       <div className="chat-box-wrapper">
+        {/* TARJETAS DE LUGARES A LA IZQUIERDA */}
+        {mapsLinks.length > 0 && (
+          <div className="cards-container">
+            {mapsLinks.map((m, i) => (
+              <div
+                key={i}
+                className="card"
+                onClick={() => setMapUrl(m.maps_url)}
+              >
+                <h4>{m.nombre}</h4>
+                <p>{m.direccion}</p>
+                <button>Ver en Maps</button>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="chat-box">
           {messages.map((msg, i) => (

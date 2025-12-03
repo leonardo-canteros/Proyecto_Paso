@@ -151,3 +151,32 @@ body, html, #root {
   0% { opacity: 0; transform: translateX(15px) scale(.9); }
   100% { opacity: 1; transform: translateX(0) scale(1); }
 }
+
+
+
+
+
+/* boton mute*/
+
+.mute-button {
+  position: fixed;
+  bottom: 110px;
+  right: 20px;
+  padding: 10px 16px;
+  font-size: 14px;
+  border-radius: 999px;
+  border: none;
+  background: #333;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: 0.2s;
+}
+
+.mute-button:hover {
+  opacity: 0.9;
+  background: #222;
+}
+
+
+

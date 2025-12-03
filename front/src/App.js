@@ -11,8 +11,12 @@ function App() {
   const [mapsLinks, setMapsLinks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [mapUrl, setMapUrl] = useState(null);
-  const [miniMapData, setMiniMapData] = useState(null);
+
+  // 🔇 estado para mute
+  const [isMuted, setIsMuted] = useState(false);
+
   const API_URL = "https://localhost:4000";
+  
   const lottieRef = useRef();
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -28,6 +32,21 @@ function App() {
       currentAudioRef.current.currentTime = 0;
     }
   };
+  
+  const toggleMute = () => {
+    if (!currentAudioRef.current) return;
+  
+    if (isMuted) {
+      // Reanudar desde donde se pausó
+      currentAudioRef.current.play();
+    } else {
+      // Pausar en el segundo actual
+      currentAudioRef.current.pause();
+    }
+  
+    setIsMuted(!isMuted);
+  };
+  
 
   const startRecording = async () => {
     stopCurrentAudio();
@@ -68,25 +87,21 @@ function App() {
         formData,
         {
           headers: {
-            "ngrok-skip-browser-warning": "69420"   // ← NECESARIO
+            "ngrok-skip-browser-warning": "69420"
           }
         }
       );
-      
 
       const data = response.data;
 
-      // Agregar mensaje de usuario y IA al chat
       setMessages((prev) => [
         ...prev,
         { sender: "user", text: data.user_text },
         { sender: "ai", text: data.reply_text },
       ]);
 
-      // Guardar Maps Links (tarjetas)
       setMapsLinks(data.maps_links || []);
 
-      // Hablar IA
       if (data.audio_base64) playAudioBase64(data.audio_base64);
     } catch (error) {
       console.error("Error en backend:", error);
@@ -96,17 +111,25 @@ function App() {
   };
 
   const playAudioBase64 = (base64String) => {
-    stopCurrentAudio();
     const audioSrc = `data:audio/mp3;base64,${base64String}`;
-    const audio = new Audio(audioSrc);
-    currentAudioRef.current = audio;
-
-    audio.play();
-    audio.onended = () => lottieRef.current?.pause();
+  
+    // Si ya existe un audio cargado, solo cambiá la fuente si es un audio nuevo.
+    if (!currentAudioRef.current) {
+      currentAudioRef.current = new Audio();
+      currentAudioRef.current.onended = () => lottieRef.current?.pause();
+    }
+  
+    // Setear solo si cambió el audio
+    if (currentAudioRef.current.src !== audioSrc) {
+      currentAudioRef.current.src = audioSrc;
+    }
+  
+    currentAudioRef.current.play();
   };
 
   return (
     <div className="App">
+
       <div className="header">
         <h1>🛶 Guía Paso de la Patria</h1>
         <span>Tu asistente turístico interactivo</span>
@@ -121,17 +144,14 @@ function App() {
         />
       </div>
 
-      {/* CHAT */}
-      <div className="chat-box-wrapper">
-        {/* TARJETAS DE LUGARES A LA IZQUIERDA */}
+      {/* 🟦 TARJETAS + CHAT EN FILA */}
+      <div className="chat-row">
+
+        {/* 🟩 TARJETAS IZQUIERDA */}
         {mapsLinks.length > 0 && (
           <div className="cards-container">
             {mapsLinks.map((m, i) => (
-              <div
-                key={i}
-                className="card"
-                onClick={() => setMapUrl(m.maps_url)}
-              >
+              <div key={i} className="card" onClick={() => setMapUrl(m.maps_url)}>
                 <h4>{m.nombre}</h4>
                 <p>{m.direccion}</p>
                 <button>Ver en Maps</button>
@@ -140,39 +160,30 @@ function App() {
           </div>
         )}
 
+        {/* 🟦 CHAT */}
         <div className="chat-box">
           {messages.map((msg, i) => (
             <div key={i} className={`message ${msg.sender}`}>
-              <span className={`bubble ${msg.sender}`}>
-                {msg.text}
-              </span>
+              <span className={`bubble ${msg.sender}`}>{msg.text}</span>
             </div>
           ))}
+
           {isLoading && <p className="loading">Procesando...</p>}
         </div>
 
-        {/* TARJETAS DE LUGARES */}
-        {mapsLinks.length > 0 && (
-          <div className="cards-container">
-            {mapsLinks.map((m, i) => (
-              <div
-                key={i}
-                className="card"
-                onClick={() => setMapUrl(m.maps_url)}
-              >
-                <h4>{m.nombre}</h4>
-                <p>{m.direccion}</p>
-                <button>Ver en Maps</button>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* MINI MAPA */}
       {mapUrl && <MiniMapa url={mapUrl} onClose={() => setMapUrl(null)} />}
 
-      {/* BOTÓN */}
+
+
+      <button className="mute-button" onClick={toggleMute}>
+        {isMuted ? "🔊 Reanudar" : "🔇 Pausar voz"}
+      </button>
+
+
+      {/* MIC BOTÓN */}
       <button
         className={`mic-button ${isRecording ? "recording" : ""}`}
         onMouseDown={startRecording}

@@ -22,8 +22,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
     "*",
-    "https://pausefully-ruffled-turner.ngrok-free.dev",
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "https://localhost:3000",
+    "https://localhost:4000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -117,7 +118,8 @@ def listar_lugares_categoria(categoria, page=1, per_page=5):
             "direccion": direccion,
             "lat": lat,
             "lng": lng,
-            "maps_url": generar_link_maps(nombre, direccion)
+            "maps_url": generar_embed_url(nombre, direccion)
+
         })
 
     if end < len(lugares):

@@ -12,9 +12,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [mapUrl, setMapUrl] = useState(null);
   const [miniMapData, setMiniMapData] = useState(null);
-  const API_URL = "https://pausefully-ruffled-turner.ngrok-free.dev";
-;
-
+  const API_URL = "https://localhost:4000";
   const lottieRef = useRef();
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);

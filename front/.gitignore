@@ -17,7 +17,24 @@
 .env.development.local
 .env.test.local
 .env.production.local
+.env
 
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# --- PYTHON / BACKEND ---
+# Regla principal para la carpeta de entorno virtual
+backend/venv/
+
+# Regla para venv si se crea en el root
+venv/
+
+# Archivos de caché
+__pycache__/
+*.pyc
+
+# Archivos binarios que a veces se rastrean
+*.dll
+*.bin
+*.so

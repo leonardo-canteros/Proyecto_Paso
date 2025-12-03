@@ -1,0 +1,32 @@
+.mini-map {
+    position: fixed;
+    right: 20px;
+    top: 120px;
+    width: 350px;
+    height: 350px;
+    background: white;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 0 18px rgba(0,0,0,0.25);
+    z-index: 999;
+  }
+  
+  .mini-map iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  
+  .close-btn {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    background: #d9534f;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 6px;
+    z-index: 9999;
+  }
+  

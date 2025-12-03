@@ -1,38 +1,260 @@
+/* FONDO GENERAL ESTILO "RÍO + CIELO" */
+body, html, #root {
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(180deg, #4f9cf9 0%, #6ec7ff 35%, #b8f0ff 70%, #d7fff0 100%);
+  background-attachment: fixed;
+}
+
+/* CONTENEDOR APP */
 .App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+  padding: 0;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* HEADER */
+.header {
+  width: 100%;
+  padding: 20px 0;
+  text-align: center;
+  color: white;
+  background: rgba(0, 72, 135, 0.55);
+  backdrop-filter: blur(9px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  border-bottom: 2px solid rgba(255,255,255,0.3);
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.header span {
+  font-size: 1.3rem;
+  opacity: 0.9;
+}
+
+/* AVATAR */
+.avatar-container {
+  width: 330px;
+  height: 330px;
+  max-width: 90vw;
+  margin: 20px 0;
+}
+
+/* CHAT BOX */
+.chat-box {
+  width: 92%;
+  max-width: 650px;
+  height: 360px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 20px;
+  padding: 18px;
+  overflow-y: auto;
+  margin-bottom: 30px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.25);
+  backdrop-filter: blur(10px);
+}
+
+.chat-box::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-box::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.25);
+  border-radius: 6px;
+}
+
+
+/* MENSAJES */
+.message {
+  margin: 10px 0;
+  display: flex;
+}
+
+.message.user {
+  justify-content: flex-end;
+}
+
+.message.ai {
+  justify-content: flex-start;
+}
+
+.bubble {
+  max-width: 75%;
+  padding: 12px 15px;
+  border-radius: 16px;
+  font-size: 1rem;
+  line-height: 1.45;
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.bubble.user {
+  background: #0054a6;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.bubble.ai {
+  background: #ff6b7f;
+}
+
+/* MIC BUTTON */
+.mic-button {
+  width: 95px;
+  height: 95px;
+  border-radius: 50%;
+  border: none;
+  font-size: 40px;
+  color: white;
+  background: #0054a6;
+  cursor: pointer;
+  transition: 0.15s ease;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+}
+
+.mic-button.recording {
+  background: #ff4d4d;
+  transform: scale(1.15);
+}
+
+.hint {
+  margin-top: 8px;
+  color: #004d66;
+  font-size: 0.95rem;
+}
+
+/* RESPONSIVO */
+@media (max-width: 600px) {
+  .avatar-container {
+    width: 250px;
+    height: 250px;
   }
-  to {
-    transform: rotate(360deg);
+
+  .chat-box {
+    height: 320px;
+  }
+
+  .mic-button {
+    width: 80px;
+    height: 80px;
+    font-size: 32px;
+  }
+
+  .bubble {
+    font-size: 0.9rem;
   }
 }
+
+/* ✨ ANIMACIONES DE BURBUJAS ✨ */
+
+/* Animación: aparece deslizándose suavemente */
+@keyframes bubbleFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.02);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Animación más suave para usuario */
+@keyframes bubbleUserPop {
+  0% {
+    opacity: 0;
+    transform: translateX(15px) scale(0.9);
+  }
+  70% {
+    transform: translateX(-3px) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* 📌 Aplicación automática según sender */
+.bubble.ai {
+  animation: bubbleFadeUp 0.28s ease forwards;
+}
+
+.bubble.user {
+  animation: bubbleUserPop 0.25s ease-out forwards;
+}
+
+/* Pequeño rebote cuando aparece */
+.bubble {
+  transform-origin: bottom;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* leofumaporro */
+
+/* 🌊 BURBUJAS FLOTANTES A LOS COSTADOS DEL CHAT */
+
+/* Contenedor invisible alrededor del chat para las burbujas */
+.chat-box-wrapper {
+  position: relative;
+  width: 92%;
+  max-width: 650px;
+  margin-bottom: 30px;
+}
+
+/* Burbujas */
+.bubble-floating {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 50%;
+  animation: floatBubble 6s linear infinite;
+  filter: blur(0.5px);
+}
+
+/* Animación principal */
+@keyframes floatBubble {
+  0% {
+    transform: translateY(120%) scale(0.6);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-150%) scale(1.25);
+    opacity: 0;
+  }
+}
+
+/* Variantes de burbujas */
+.bubble-floating.small {
+  width: 8px;
+  height: 8px;
+  animation-duration: 5.5s;
+}
+
+.bubble-floating.large {
+  width: 22px;
+  height: 22px;
+  animation-duration: 7.5s;
+}
+
+.bubble-floating.delay1 { animation-delay: 1s; }
+.bubble-floating.delay2 { animation-delay: 2.5s; }
+.bubble-floating.delay3 { animation-delay: 3.8s; }
+.bubble-floating.delay4 { animation-delay: 4.7s; }
+
+/* Posiciones laterales */
+.left { left: -20px; }
+.right { right: -20px; }

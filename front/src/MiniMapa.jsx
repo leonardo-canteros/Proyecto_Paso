@@ -16,6 +16,7 @@ export default function MiniMapa({ url, onClose }) {
         allowFullScreen
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
+         title="mini-mapa-paso"
       ></iframe>
     </div>
   );

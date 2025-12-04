@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import Lottie from "lottie-react";
-import animationData from "./avatar.json";
 import MiniMapa from "./MiniMapa";
 import "./App.css";
+import Avatar3D from "./Avatar3D";
+
+
 
 function App() {
   const [isRecording, setIsRecording] = useState(false);
@@ -12,44 +13,43 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [mapUrl, setMapUrl] = useState(null);
 
-  // 🔇 estado para mute
   const [isMuted, setIsMuted] = useState(false);
 
+  // 🟩 ESTADO DEL AVATAR 3D
+  const [avatarState, setAvatarState] = useState("inactivo");
+
   const API_URL = "https://localhost:4000";
-  
-  const lottieRef = useRef();
+
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const currentAudioRef = useRef(null);
 
-  useEffect(() => {
-    if (lottieRef.current) lottieRef.current.pause();
-  }, []);
-
+  // 🔇 detener audio actual
   const stopCurrentAudio = () => {
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
       currentAudioRef.current.currentTime = 0;
     }
   };
-  
+
+  // 🔇 Mute/Unmute
   const toggleMute = () => {
     if (!currentAudioRef.current) return;
-  
+
     if (isMuted) {
-      // Reanudar desde donde se pausó
       currentAudioRef.current.play();
     } else {
-      // Pausar en el segundo actual
       currentAudioRef.current.pause();
     }
-  
+
     setIsMuted(!isMuted);
   };
-  
 
+  // 🎤 INICIO DE GRABACIÓN
   const startRecording = async () => {
     stopCurrentAudio();
+    setAvatarState("thinking"); // 🟩 SEÑAL: escuchando/pensando
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
@@ -67,13 +67,16 @@ function App() {
     }
   };
 
+  // 🎤 FIN DE GRABACIÓN
   const stopRecording = () => {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      setAvatarState("thinking"); // 🟩 esperando respuesta
     }
   };
 
+  // 📤 ENVÍO AL BACKEND
   const sendAudioToBackend = async () => {
     setIsLoading(true);
 
@@ -102,6 +105,7 @@ function App() {
 
       setMapsLinks(data.maps_links || []);
 
+      // ▶ reproducir voz de la IA
       if (data.audio_base64) playAudioBase64(data.audio_base64);
     } catch (error) {
       console.error("Error en backend:", error);
@@ -110,44 +114,39 @@ function App() {
     }
   };
 
+  // 🔊 REPRODUCCIÓN DE AUDIO
   const playAudioBase64 = (base64String) => {
     const audioSrc = `data:audio/mp3;base64,${base64String}`;
-  
-    // Si ya existe un audio cargado, solo cambiá la fuente si es un audio nuevo.
+
     if (!currentAudioRef.current) {
       currentAudioRef.current = new Audio();
-      currentAudioRef.current.onended = () => lottieRef.current?.pause();
+      currentAudioRef.current.onended = () => {
+        setAvatarState("inactivo"); // 🟩 vuelve a idle
+      };
     }
-  
-    // Setear solo si cambió el audio
+
     if (currentAudioRef.current.src !== audioSrc) {
       currentAudioRef.current.src = audioSrc;
     }
-  
+
+    setAvatarState("talking"); // 🟩 está hablando
     currentAudioRef.current.play();
   };
 
   return (
     <div className="App">
-
       <div className="header">
         <h1>🛶 Guía Paso de la Patria</h1>
         <span>Tu asistente turístico interactivo</span>
       </div>
 
-      <div className="avatar-container">
-        <Lottie
-          lottieRef={lottieRef}
-          animationData={animationData}
-          loop
-          autoplay={false}
-        />
+      {/* 🟦 AVATAR 3D */}
+      <div className="avatar-container" style={{ height: "500px" }}>
+        <Avatar3D state={avatarState} />
       </div>
 
-      {/* 🟦 TARJETAS + CHAT EN FILA */}
+      {/* 🟦 TARJETAS + CHAT */}
       <div className="chat-row">
-
-        {/* 🟩 TARJETAS IZQUIERDA */}
         {mapsLinks.length > 0 && (
           <div className="cards-container">
             {mapsLinks.map((m, i) => (
@@ -160,7 +159,6 @@ function App() {
           </div>
         )}
 
-        {/* 🟦 CHAT */}
         <div className="chat-box">
           {messages.map((msg, i) => (
             <div key={i} className={`message ${msg.sender}`}>
@@ -170,20 +168,14 @@ function App() {
 
           {isLoading && <p className="loading">Procesando...</p>}
         </div>
-
       </div>
 
-      {/* MINI MAPA */}
       {mapUrl && <MiniMapa url={mapUrl} onClose={() => setMapUrl(null)} />}
-
-
 
       <button className="mute-button" onClick={toggleMute}>
         {isMuted ? "🔊 Reanudar" : "🔇 Pausar voz"}
       </button>
 
-
-      {/* MIC BOTÓN */}
       <button
         className={`mic-button ${isRecording ? "recording" : ""}`}
         onMouseDown={startRecording}

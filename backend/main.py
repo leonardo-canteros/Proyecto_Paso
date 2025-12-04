@@ -44,7 +44,7 @@ def detectar_intencion(texto):
 
     # Sinónimos + errores comunes de Whisper
     palabras_gastro = [
-        "comer", "almorzar", "almuerzo",
+        "la hermana de leo","mía","gastronomia","gastronomía","comer", "almorzar", "almuerzo",
         "morzar", "mosar", "al morzar", "al mosar", "morso", "almorzo",
         "cenar", "cena", "pescado", "resto", "restaurant", "parrilla"
     ]

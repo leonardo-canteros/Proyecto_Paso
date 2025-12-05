@@ -3,11 +3,11 @@ import React, { useEffect } from "react";
 import { useGLTF, useAnimations } from "@react-three/drei";
 
 const MODELS = {
-  greeting: "/models/greeting_control_gpt.glb",
-  inactivo: "/models/idle_para_chat.glb",
-  thinking: "/models/thinking_control_gpt.glb",
-  talking: "/models/talking_control_gpt.glb",
-  pointing: "/models/poiting_control_gpt.glb",
+  greeting: "/models/Greeting.glb",
+  inactivo: "/models/Idle.glb",
+  thinking: "/models/thinking.glb",
+  talking: "/models/Talking.glb",
+  pointing: "/models/Pointing.glb",
 };
 
 export function AvatarModel({ state }) {

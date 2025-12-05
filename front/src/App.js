@@ -12,10 +12,8 @@ function App() {
   const [mapUrl, setMapUrl] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
 
-  // 🟩 Estado del Avatar 3D
   const [avatarState, setAvatarState] = useState("greeting");
 
-  // 🟦 Greeting inicial → Idle
   useEffect(() => {
     const t = setTimeout(() => setAvatarState("inactivo"), 3000);
     return () => clearTimeout(t);
@@ -27,59 +25,94 @@ function App() {
   const audioChunksRef = useRef([]);
   const currentAudioRef = useRef(null);
 
-  // 🟥 Detener audio si está sonando
+  // solo la última request puede reproducir audio
+  const requestIdRef = useRef(0);
+  const isAudioPlayingRef = useRef(false);
+
+  // --- helpers de audio / avatar ---
+
   const stopCurrentAudio = () => {
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current.currentTime = 0;
+    const audio = currentAudioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
     }
+    isAudioPlayingRef.current = false;
   };
 
-  // 🔇 Mute / Unmute
+  const setAvatarSafely = (newState) => {
+    setAvatarState((prev) => {
+      // si está hablando, solo permitimos pasar a inactivo
+      if (prev === "talking" && newState !== "inactivo") return prev;
+      return newState;
+    });
+  };
+
   const toggleMute = () => {
-    if (!currentAudioRef.current) return;
+    const audio = currentAudioRef.current;
 
-    if (isMuted) currentAudioRef.current.play();
-    else currentAudioRef.current.pause();
+    if (!audio) {
+      setIsMuted((m) => !m);
+      return;
+    }
 
-    setIsMuted(!isMuted);
+    if (isMuted) {
+      audio
+        .play()
+        .catch((err) => console.error("Error al reanudar audio:", err));
+    } else {
+      audio.pause();
+    }
+
+    setIsMuted((m) => !m);
   };
 
-  // 🎤 INICIO DE GRABACIÓN
-  const startRecording = async () => {
+  // --- grabación ---
+
+  const startRecording = async (e) => {
+    e?.preventDefault?.();
+    if (isRecording) return; // evitar dobles toques
+
     stopCurrentAudio();
+    setIsMuted(false);
+
+    // nueva request: invalida audios viejos
+    requestIdRef.current += 1;
+    const myRequestId = requestIdRef.current;
+
     setAvatarSafely("thinking");
-  
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
       audioChunksRef.current = [];
-  
+
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
-  
-      mediaRecorderRef.current.onstop = sendAudioToBackend;
+
+      mediaRecorderRef.current.onstop = () => sendAudioToBackend(myRequestId);
+
       mediaRecorderRef.current.start();
       setIsRecording(true);
-  
     } catch (error) {
+      console.error(error);
       alert("Error con el micrófono 🎤");
+      setAvatarSafely("inactivo");
     }
   };
-  
 
-  // 🎤 FIN DE GRABACIÓN
   const stopRecording = () => {
+    if (!isRecording) return;
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      setAvatarSafely("talking"); // sigue pensando hasta que llegue la respuesta
     }
+    setIsRecording(false);
   };
 
-  // 📤 ENVÍA EL AUDIO AL BACKEND
-  const sendAudioToBackend = async () => {
+  // --- envío al backend ---
+
+  const sendAudioToBackend = async (requestId) => {
     setIsLoading(true);
     setAvatarSafely("talking");
 
@@ -95,7 +128,6 @@ function App() {
 
       const data = response.data;
 
-      // Mensajes
       setMessages((prev) => [
         ...prev,
         { sender: "user", text: data.user_text },
@@ -104,9 +136,11 @@ function App() {
 
       setMapsLinks(data.maps_links || []);
 
-      // Reproducir voz si viene audio
-      if (data.audio_base64) playAudioBase64(data.audio_base64);
-
+      if (data.audio_base64) {
+        playAudioBase64(data.audio_base64, requestId);
+      } else {
+        setAvatarSafely("inactivo");
+      }
     } catch (e) {
       console.error("Error en backend:", e);
       setAvatarState("inactivo");
@@ -115,56 +149,57 @@ function App() {
     }
   };
 
-  
-  // --- CONTROL SEGURO DEL ESTADO DEL AVATAR ---
-  const setAvatarSafely = (newState) => {
-    setAvatarState((prev) => {
-      // ❌ Si está hablando, NADIE puede cambiar el estado  
-      if (prev === "talking" && newState !== "inactivo") {
-        return prev;
-      }
-      return newState;
-    });
-  };
+  // --- reproducción segura del audio de IA ---
 
+  const playAudioBase64 = (base64String, requestId) => {
+    if (!base64String) return;
 
-    // 🔊 REPRODUCIR AUDIO DEL BACKEND
-    const playAudioBase64 = (base64String) => {
-      const audioSrc = `data:audio/mp3;base64,${base64String}`;
-    
-      // Crear audio una sola vez
-      if (!currentAudioRef.current) {
-        currentAudioRef.current = new Audio();
-      }
-    
-      const audio = currentAudioRef.current;
-    
-      // Al terminar de hablar → idle
-      audio.onended = () => {
-        console.log("▶ Audio terminado → vuelve a inactivo");
-        setAvatarSafely("inactivo");
-      };
-    
-      // Cargar el nuevo audio
-      audio.src = audioSrc;
-      audio.load();
-    
-      // Cuando el audio YA se puede reproducir → recién ahí poner talking
-      audio.oncanplaythrough = () => {
-        console.log("▶ Audio listo → talking activado!");
-        setAvatarSafely("talking");
-    
-        // Reproducir sí o sí
-        audio.play().catch(err => {
-          console.error("Error al reproducir:", err);
-        });
-      };
+    // si esta respuesta NO es la última → ignorar
+    if (requestId !== requestIdRef.current) {
+      console.log("Respuesta vieja ignorada", requestId);
+      return;
+    }
+
+    // si estoy grabando, no reproducir nada
+    if (isRecording) {
+      console.log("Grabando → no reproduzco audio IA");
+      return;
+    }
+
+    stopCurrentAudio();
+
+    if (!currentAudioRef.current) {
+      currentAudioRef.current = new Audio();
+    }
+
+    const audio = currentAudioRef.current;
+    const src = `data:audio/mp3;base64,${base64String}`;
+    audio.src = src;
+    audio.load();
+
+    audio.onended = () => {
+      isAudioPlayingRef.current = false;
+      setAvatarSafely("inactivo");
     };
-  
+
+    audio.oncanplaythrough = () => {
+      // si en el medio se inició otra request o empezó a grabar, cancelar
+      if (requestId !== requestIdRef.current || isRecording) {
+        isAudioPlayingRef.current = false;
+        return;
+      }
+
+      isAudioPlayingRef.current = true;
+      setAvatarSafely("talking");
+
+      audio
+        .play()
+        .catch((err) => console.error("Error al reproducir:", err));
+    };
+  };
 
   return (
     <div className="App">
-
       {/* HEADER */}
       <div className="header">
         <h1>🛶 Guía Paso de la Patria</h1>
@@ -172,7 +207,7 @@ function App() {
       </div>
 
       {/* AVATAR */}
-      <div className="avatar-container" style={{ height: "500px" }}>
+      <div className="avatar-wrapper">
         <Avatar3D state={avatarState} />
       </div>
 
@@ -188,7 +223,6 @@ function App() {
                 onClick={() => {
                   setAvatarState("pointing");
                   setMapUrl(m.maps_url);
-
                   setTimeout(() => setAvatarState("inactivo"), 1500);
                 }}
               >
@@ -220,17 +254,19 @@ function App() {
         {isMuted ? "🔊 Reanudar" : "🔇 Pausar voz"}
       </button>
 
-      {/* MIC */}
+      {/* MIC (desktop + móvil) */}
       <button
         className={`mic-button ${isRecording ? "recording" : ""}`}
         onMouseDown={startRecording}
         onMouseUp={stopRecording}
+        onMouseLeave={stopRecording}
+        onTouchStart={startRecording}
+        onTouchEnd={stopRecording}
       >
         🎙️
       </button>
 
       <p className="hint">Mantén presionado para hablar</p>
-
     </div>
   );
 }

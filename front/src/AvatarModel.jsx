@@ -1,7 +1,8 @@
 // src/AvatarModel.jsx
 import React, { useEffect, useMemo, useRef } from "react";
 import { useGLTF, useAnimations } from "@react-three/drei";
-import { useGraph } from "@react-three/fiber";
+import { useFrame, useGraph } from "@react-three/fiber";
+import { MathUtils } from "three"; 
 import { SkeletonUtils } from "three-stdlib";
 
 const MODELS = {
@@ -13,65 +14,77 @@ const MODELS = {
 };
 
 export function AvatarModel({ state }) {
-  // 1. Cargamos TODOS los modelos al mismo tiempo
   const greetingGLTF = useGLTF(MODELS.greeting);
   const idleGLTF = useGLTF(MODELS.inactivo);
   const thinkingGLTF = useGLTF(MODELS.thinking);
   const talkingGLTF = useGLTF(MODELS.talking);
   const pointingGLTF = useGLTF(MODELS.pointing);
 
-  // 2. Definimos cuál será nuestro modelo "base" (el cuerpo visible)
-  // Usamos useMemo para clonar la escena y asegurarnos de que es única
   const scene = useMemo(() => SkeletonUtils.clone(idleGLTF.scene), [idleGLTF.scene]);
-  
-  // Necesitamos conectar la geometría clonada al gráfico de three.js
   const { nodes } = useGraph(scene);
 
-  // 3. Unificamos todas las animaciones en una sola lista
   const animations = useMemo(() => {
     const allAnimations = [];
-    
-    // Función auxiliar para renombrar y agregar clips
     const addClip = (gltf, name) => {
       if (gltf.animations.length > 0) {
-        const clip = gltf.animations[0].clone(); // Clonamos para no mutar el original
-        clip.name = name; // Le ponemos el nombre de nuestro estado (ej: "greeting")
+        const clip = gltf.animations[0].clone();
+        clip.name = name;
         allAnimations.push(clip);
       }
     };
-
     addClip(greetingGLTF, "greeting");
     addClip(idleGLTF, "inactivo");
     addClip(thinkingGLTF, "thinking");
     addClip(talkingGLTF, "talking");
     addClip(pointingGLTF, "pointing");
-
     return allAnimations;
   }, [greetingGLTF, idleGLTF, thinkingGLTF, talkingGLTF, pointingGLTF]);
 
-  // 4. Hook de animaciones usando la escena base y la lista combinada
   const { actions } = useAnimations(animations, scene);
+  
+  // Referencia para guardar el nombre de la acción anterior y actual
+  const currentAction = useRef("inactivo");
 
-  // 5. Lógica de transición (Blending)
+  // 1. Lógica de activación inicial y cambio de estado
   useEffect(() => {
-    // Si la acción solicitada no existe, usar 'inactivo' por defecto
+    // Determinamos el nombre de la acción válida o usamos fallback
     const actionName = actions[state] ? state : "inactivo";
-    const nextAction = actions[actionName];
+    
+    // Aseguramos que la animación objetivo se esté reproduciendo (peso 0 al inicio, pero 'running')
+    if (actions[actionName]) {
+      actions[actionName].reset().play(); // Play inicia, pero el peso lo maneja useFrame
+    }
+    
+    currentAction.current = actionName;
 
-    if (!nextAction) return;
-
-    // Configurar la nueva animación
-    // .reset() reinicia el tiempo si ya se había reproducido
-    // .fadeIn(0.5) hace que la animación entre suavemente en 0.5 segundos
-    // .play() la inicia
-    nextAction.reset().fadeIn(0.5).play();
-
-    // CLEANUP: Esta función se ejecuta cuando 'state' cambia, justo antes del siguiente efecto
-    return () => {
-      // Hacemos fadeOut de la animación que estaba sonando para mezclarla con la nueva
-      nextAction.fadeOut(0.5);
-    };
   }, [state, actions]);
+
+
+  // 2. Loop de animación (sucede 60 veces por segundo)
+  useFrame((state, delta) => {
+    // Velocidad de la transición (ajusta este número: más bajo = más lento/suave)
+    const transitionSpeed = 2; 
+
+    for (const name in actions) {
+      const action = actions[name];
+      if (!action) continue;
+
+      // Si es la acción actual, queremos peso 1, si no, peso 0
+      const targetWeight = name === currentAction.current ? 1 : 0;
+
+      // MathUtils.lerp hace la transición suave hacia el objetivo
+      action.setEffectiveWeight(
+        MathUtils.lerp(action.getEffectiveWeight(), targetWeight, delta * transitionSpeed)
+      );
+
+      // Optimización: Si el peso es muy bajo (casi invisible), detenemos la animación para ahorrar CPU
+      if (action.getEffectiveWeight() < 0.01 && targetWeight === 0) {
+        action.stop();
+      } else if (targetWeight === 1 && !action.isRunning()) {
+        action.play();
+      }
+    }
+  });
 
   return (
     <primitive
@@ -82,5 +95,4 @@ export function AvatarModel({ state }) {
   );
 }
 
-// Pre-cargamos todos para evitar parpadeos iniciales
 Object.values(MODELS).forEach((p) => useGLTF.preload(p));

@@ -39,8 +39,15 @@ function App() {
   const toggleMute = () => {
     if (!currentAudioRef.current) return;
 
-    if (isMuted) currentAudioRef.current.play();
-    else currentAudioRef.current.pause();
+    if (isMuted) {
+      currentAudioRef.current.play();
+      setAvatarState("talking");
+    }
+    else {
+      currentAudioRef.current.pause();
+      setAvatarState("inactivo");
+    }
+  
 
     setIsMuted(!isMuted);
   };
@@ -74,14 +81,14 @@ function App() {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      setAvatarSafely("talking"); // sigue pensando hasta que llegue la respuesta
+      setAvatarSafely("thinking"); // sigue pensando hasta que llegue la respuesta
     }
   };
 
   // 📤 ENVÍA EL AUDIO AL BACKEND
   const sendAudioToBackend = async () => {
     setIsLoading(true);
-    setAvatarSafely("talking");
+    setAvatarSafely("thinking");
 
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
 

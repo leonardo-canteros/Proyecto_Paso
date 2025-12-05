@@ -114,6 +114,8 @@ function App() {
       setIsLoading(false);
     }
   };
+
+  
   // --- CONTROL SEGURO DEL ESTADO DEL AVATAR ---
   const setAvatarSafely = (newState) => {
     setAvatarState((prev) => {

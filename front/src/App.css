@@ -42,18 +42,18 @@ body, html, #root {
   opacity: 0.9;
 }
 
-/* AVATAR */
-/* App.css */
-.avatar-container {
-  width: 70%;
-  height: 380px;       /* algo así */
-  margin: 40px auto 10px;
+/* AVATAR WRAPPER GENERAL (afuera del canvas) */
+.avatar-wrapper {
+  width: 100%;
+  max-width: 480px;
+  height: 380px;
+  margin: 20px auto 10px;
   border-radius: 24px;
-  background: transparent !important;
-  box-shadow: none !important;
+  background: transparent;
   overflow: hidden;
 }
 
+/* (opcional) si usás esta caja extra */
 .avatar-box {
   position: absolute;
   top: 150px;
@@ -64,10 +64,6 @@ body, html, #root {
   background: none;
   border: none;
 }
-
-
-
-
 
 /* FILA: TARJETAS + CHAT */
 .chat-row {
@@ -94,13 +90,14 @@ body, html, #root {
   flex: 1;
   max-width: 650px;
   height: 360px;
-  background: rgba(255,255,255,0.18);
-  border-radius: 20px;
-  padding: 18px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 24px;    /* 👈 sin bordes redondeados */
+  padding: 18px 0;           /* un poco menos a los costados */
   overflow-y: auto;
-  box-shadow: 0 0 15px rgba(0,0,0,0.25);
-  backdrop-filter: blur(10px);
+  box-shadow: none;          /* 👈 sin sombra */
+  backdrop-filter: none;     /* 👈 sin blur de vidrio */
 }
+
 
 .chat-box::-webkit-scrollbar { width: 6px; }
 .chat-box::-webkit-scrollbar-thumb {
@@ -109,9 +106,16 @@ body, html, #root {
 }
 
 /* MENSAJES */
-.message { margin: 10px 0; display: flex; }
-.message.user { justify-content: flex-end; }
-.message.ai { justify-content: flex-start; }
+.message {
+  margin: 10px 0;
+  display: flex;
+}
+.message.user {
+  justify-content: flex-end;
+}
+.message.ai {
+  justify-content: flex-start;
+}
 
 .bubble {
   max-width: 75%;
@@ -121,14 +125,22 @@ body, html, #root {
   line-height: 1.45;
   color: white;
   animation: bubbleFadeUp .3s ease forwards;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
-.bubble.user { background: #0054a6; animation: bubbleUserPop .25s ease-out forwards; }
-.bubble.ai   { background: #ff6b7f; }
+.bubble.user {
+  background: #0054a6;
+  animation: bubbleUserPop .25s ease-out forwards;
+}
+.bubble.ai {
+  background: #ff6b7f;
+}
 
 /* MIC BUTTON */
 .mic-button {
-  width: 95px; height: 95px;
+  width: 95px;
+  height: 95px;
   border-radius: 50%;
   border: none;
   font-size: 40px;
@@ -139,44 +151,41 @@ body, html, #root {
   box-shadow: 0 8px 20px rgba(0,0,0,0.45);
 }
 
-.mic-button.recording { background: #ff4d4d; transform: scale(1.15); }
+.mic-button.recording {
+  background: #ff4d4d;
+  transform: scale(1.15);
+}
 
-.hint { margin-top: 8px; color: #004d66; font-size: .95rem; }
-
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  .chat-row {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .cards-container {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .chat-box {
-    max-width: 100%;
-  }
+.hint {
+  margin-top: 8px;
+  color: #004d66;
+  font-size: .95rem;
 }
 
 /* ANIMACIONES */
 @keyframes bubbleFadeUp {
-  0% { opacity: 0; transform: translateY(12px) scale(.97); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes bubbleUserPop {
-  0% { opacity: 0; transform: translateX(15px) scale(.9); }
-  100% { opacity: 1; transform: translateX(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateX(15px) scale(.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
 }
 
-
-
-
-
-/* boton mute*/
-
+/* BOTÓN MUTE */
 .mute-button {
   position: fixed;
   bottom: 110px;
@@ -197,5 +206,55 @@ body, html, #root {
   background: #222;
 }
 
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 768px) {
+  .App {
+    max-width: 100%;
+  }
 
+  .avatar-wrapper {
+    width: 100%;
+    height: 260px; /* más bajo en celu */
+  }
 
+  .chat-row {
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 16px;
+  }
+
+  .cards-container {
+    width: 100%;
+    max-width: 100%;
+    max-height: 25vh;
+    overflow-y: auto;
+  }
+
+  .chat-box {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 45vh;
+  }
+
+  .bubble {
+    max-width: 90%;
+  }
+
+  .mic-button {
+    width: 80px;
+    height: 80px;
+  }
+
+  .mute-button {
+    bottom: 90px;
+    right: 10px;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .hint {
+    font-size: 0.85rem;
+  }
+}

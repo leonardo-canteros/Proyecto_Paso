@@ -11,7 +11,7 @@ export default function Avatar3D({ state }) {
       camera={{ position: [0, 1.1, 1.8], fov: 30 }}
       style={{ width: "100%", height: "100%" }}
     >
-      <ambientLight intensity={0.9} />
+      <ambientLight intensity={4} />
       <directionalLight position={[2, 4, 2]} intensity={1} />
 
       <Suspense fallback={null}>

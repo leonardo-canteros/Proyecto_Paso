@@ -11,25 +11,30 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [mapUrl, setMapUrl] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
-
   const [avatarState, setAvatarState] = useState("greeting");
-
-  useEffect(() => {
-    const t = setTimeout(() => setAvatarState("inactivo"), 3000);
-    return () => clearTimeout(t);
-  }, []);
 
   const API_URL = "https://localhost:4000";
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const currentAudioRef = useRef(null);
-
-  // solo la última request puede reproducir audio
   const requestIdRef = useRef(0);
   const isAudioPlayingRef = useRef(false);
+  const userIdRef = useRef(null);
 
-  // --- helpers de audio / avatar ---
+  useEffect(() => {
+    const t = setTimeout(() => setAvatarState("inactivo"), 3000);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    let uid = localStorage.getItem("paso_user_id");
+    if (!uid) {
+      uid = crypto.randomUUID();
+      localStorage.setItem("paso_user_id", uid);
+    }
+    userIdRef.current = uid;
+  }, []);
 
   const stopCurrentAudio = () => {
     const audio = currentAudioRef.current;
@@ -42,7 +47,6 @@ function App() {
 
   const setAvatarSafely = (newState) => {
     setAvatarState((prev) => {
-      // si está hablando, solo permitimos pasar a inactivo
       if (prev === "talking" && newState !== "inactivo") return prev;
       return newState;
     });
@@ -57,28 +61,23 @@ function App() {
     }
 
     if (isMuted) {
-      currentAudioRef.current.play();
+      audio.play();
       setAvatarState("talking");
-    }
-    else {
-      currentAudioRef.current.pause();
+    } else {
+      audio.pause();
       setAvatarState("inactivo");
     }
-  
 
     setIsMuted(!isMuted);
   };
 
-  // --- grabación ---
-
   const startRecording = async (e) => {
     e?.preventDefault?.();
-    if (isRecording) return; // evitar dobles toques
+    if (isRecording) return;
 
     stopCurrentAudio();
     setIsMuted(false);
 
-    // nueva request: invalida audios viejos
     requestIdRef.current += 1;
     const myRequestId = requestIdRef.current;
 
@@ -109,29 +108,28 @@ function App() {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      setAvatarSafely("thinking"); // sigue pensando hasta que llegue la respuesta
+      setAvatarSafely("thinking");
     }
-    setIsRecording(false);
   };
-
-  // --- envío al backend ---
 
   const sendAudioToBackend = async (requestId) => {
     setIsLoading(true);
     setAvatarSafely("thinking");
 
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
-
     const formData = new FormData();
     formData.append("file", audioBlob, "mensaje.wav");
 
     try {
       const response = await axios.post(`${API_URL}/api/chat/audio`, formData, {
-        headers: { "ngrok-skip-browser-warning": "69420" },
+        headers: {
+          "x-user-id": userIdRef.current || "anon",
+        },
       });
 
       const data = response.data;
 
+      // 👇 COINCIDE CON main.py (user_text / reply_text / maps_links)
       setMessages((prev) => [
         ...prev,
         { sender: "user", text: data.user_text },
@@ -153,18 +151,14 @@ function App() {
     }
   };
 
-  // --- reproducción segura del audio de IA ---
-
   const playAudioBase64 = (base64String, requestId) => {
     if (!base64String) return;
 
-    // si esta respuesta NO es la última → ignorar
     if (requestId !== requestIdRef.current) {
       console.log("Respuesta vieja ignorada", requestId);
       return;
     }
 
-    // si estoy grabando, no reproducir nada
     if (isRecording) {
       console.log("Grabando → no reproduzco audio IA");
       return;
@@ -187,7 +181,6 @@ function App() {
     };
 
     audio.oncanplaythrough = () => {
-      // si en el medio se inició otra request o empezó a grabar, cancelar
       if (requestId !== requestIdRef.current || isRecording) {
         isAudioPlayingRef.current = false;
         return;
@@ -196,28 +189,22 @@ function App() {
       isAudioPlayingRef.current = true;
       setAvatarSafely("talking");
 
-      audio
-        .play()
-        .catch((err) => console.error("Error al reproducir:", err));
+      audio.play().catch((err) => console.error("Error al reproducir:", err));
     };
   };
 
   return (
     <div className="App">
-      {/* HEADER */}
       <div className="header">
         <h1>🛶 Guía Paso de la Patria</h1>
         <span>Tu asistente turístico interactivo</span>
       </div>
 
-      {/* AVATAR */}
       <div className="avatar-wrapper">
         <Avatar3D state={avatarState} />
       </div>
 
-      {/* TARJETAS + CHAT */}
       <div className="chat-row">
-        {/* TARJETAS DE MAPS */}
         {mapsLinks.length > 0 && (
           <div className="cards-container">
             {mapsLinks.map((m, i) => (
@@ -238,7 +225,6 @@ function App() {
           </div>
         )}
 
-        {/* CHAT */}
         <div className="chat-box">
           {messages.map((msg, i) => (
             <div key={i} className={`message ${msg.sender}`}>
@@ -250,15 +236,12 @@ function App() {
         </div>
       </div>
 
-      {/* MAPA */}
       {mapUrl && <MiniMapa url={mapUrl} onClose={() => setMapUrl(null)} />}
 
-      {/* BOTÓN DE MUTE */}
       <button className="mute-button" onClick={toggleMute}>
         {isMuted ? "🔊 Reanudar" : "🔇 Pausar voz"}
       </button>
 
-      {/* MIC (desktop + móvil) */}
       <button
         className={`mic-button ${isRecording ? "recording" : ""}`}
         onMouseDown={startRecording}

@@ -11,12 +11,12 @@ export default function Avatar3D({ state }) {
       camera={{ position: [0, 1.1, 1.8], fov: 30 }}
       style={{ width: "100%", height: "100%" }}
     >
-      <ambientLight intensity={4} />
-      <directionalLight position={[2, 4, 2]} intensity={1} />
+      <ambientLight intensity={5} />
+      <directionalLight position={[1, 6, 10]} intensity={1} />
 
       <Suspense fallback={null}>
         <AvatarModel state={state} />
-        <OrbitControls enableZoom={false} enablePan={false} />
+        <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
       </Suspense>
     </Canvas>
   );

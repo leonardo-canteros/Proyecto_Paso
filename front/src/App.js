@@ -57,14 +57,16 @@ function App() {
     }
 
     if (isMuted) {
-      audio
-        .play()
-        .catch((err) => console.error("Error al reanudar audio:", err));
-    } else {
-      audio.pause();
+      currentAudioRef.current.play();
+      setAvatarState("talking");
     }
+    else {
+      currentAudioRef.current.pause();
+      setAvatarState("inactivo");
+    }
+  
 
-    setIsMuted((m) => !m);
+    setIsMuted(!isMuted);
   };
 
   // --- grabación ---
@@ -106,6 +108,8 @@ function App() {
     if (!isRecording) return;
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      setAvatarSafely("thinking"); // sigue pensando hasta que llegue la respuesta
     }
     setIsRecording(false);
   };
@@ -114,7 +118,7 @@ function App() {
 
   const sendAudioToBackend = async (requestId) => {
     setIsLoading(true);
-    setAvatarSafely("talking");
+    setAvatarSafely("thinking");
 
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
 

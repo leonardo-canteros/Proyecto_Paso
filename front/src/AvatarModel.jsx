@@ -6,6 +6,7 @@ import { MathUtils } from "three";
 import { SkeletonUtils } from "three-stdlib";
 
 const MODELS = {
+  base: "/models/basemodel.glb",
   greeting: "/models/Greeting.glb",
   inactivo: "/models/Idle.glb",
   thinking: "/models/thinking.glb",
@@ -14,13 +15,14 @@ const MODELS = {
 };
 
 export function AvatarModel({ state }) {
+  const baseModelGLTF = useGLTF(MODELS.base);
   const greetingGLTF = useGLTF(MODELS.greeting);
   const idleGLTF = useGLTF(MODELS.inactivo);
   const thinkingGLTF = useGLTF(MODELS.thinking);
   const talkingGLTF = useGLTF(MODELS.talking);
   const pointingGLTF = useGLTF(MODELS.pointing);
 
-  const scene = useMemo(() => SkeletonUtils.clone(idleGLTF.scene), [idleGLTF.scene]);
+  const scene = useMemo(() => SkeletonUtils.clone(baseModelGLTF.scene), [baseModelGLTF.scene]);
   const { nodes } = useGraph(scene);
 
   const animations = useMemo(() => {
@@ -83,6 +85,27 @@ export function AvatarModel({ state }) {
       } else if (targetWeight === 1 && !action.isRunning()) {
         action.play();
       }
+    }
+
+    const headMesh = nodes.Wolf3D_Head; 
+    const morphName = "mouthOpen"; 
+    const morphIndex = headMesh.morphTargetDictionary[morphName];
+    
+    if (currentAction.current === "talking") {
+      // 1. Obtenemos el tiempo actual del reloj de Three.js
+      const time = state.clock.elapsedTime;
+
+      // 2. Creamos una onda oscilante (Seno) que va de 0 a 1 repetidamente
+      // Multiplicamos 'time' por 15 para que sea rápido (velocidad de habla)
+      // Sumamos 1 y dividimos por 2 para que el valor siempre sea positivo (0 a 1)
+      const movimiento = (Math.sin(time * 15) + 1) / 2;
+
+      // 3. Asignamos el valor. Multiplicamos por 0.6 para que no abra la boca excesivamente (el 2 era mucho)
+      headMesh.morphTargetInfluences[morphIndex] = movimiento * 0.6;
+      
+    } else {
+      // Si no habla, boca cerrada (valor 0)
+      headMesh.morphTargetInfluences[morphIndex] = 0;
     }
   });
 

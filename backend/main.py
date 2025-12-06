@@ -22,26 +22,7 @@ from catalogo_paso import CATALOGO  # tu catálogo
 
 load_dotenv()
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-python - << "EOF"
-from dotenv import load_dotenv
-from groq import Groq
-import os
-
-load_dotenv()
-key = os.getenv("GROQ_API_KEY")
-print("KEY:", repr(key), "len=", len(key))
-
-client = Groq(api_key=key)
-
-try:
-    models = client.models.list()
-    print("OK, modelos:", [m.id for m in models.data][:5])
-except Exception as e:
-    print("ERROR:", e)
-EOF
-
-print("GROQ_API_KEY DEBUG:", repr(GROQ_API_KEY), "len=", len(GROQ_API_KEY))
+GROQ_API_KEY=os.getenv("GROQ_API_KEY")
 
 
 MAPS_EMBED_KEY = os.getenv("MAPS_EMBED_KEY")  #
@@ -175,13 +156,35 @@ async def llamar_llm_intencion(
     texto_usuario: str,
     sesion: Dict[str, Any],
 ) -> Dict[str, Any]:
-    # 👇 acá dejamos bien fuerte el contexto de PASO DE LA PÁTRIA
+    # 👇 contexto fuerte pero sin deformar nombres propios
     prompt_sistema = (
-        "Eres un asistente turístico ESPECIALIZADO en PASO DE LA pátria, "
-        "CORRIENTES, ARGENTINA. "
-        "Siempre respondes pensando en esa localidad y NUNCA recomiendas lugares "
-        "de otras ciudades o provincias. "
-        "Tu trabajo es decidir la intención del usuario y devolver SIEMPRE un JSON."
+        "Eres un asistente turístico ESPECIALIZADO en Paso de la Pátria, "
+        "Corrientes, Argentina. Siempre respondes pensando ÚNICAMENTE en esa localidad.\n\n"
+        "REGLAS SOBRE EL NOMBRE DEL LUGAR:\n"
+        "- Cuando te refieras a la localidad, escribe exactamente: \"Paso de la Pátria\".\n"
+        "- NO cambies ni modifiques los nombres propios de hoteles, restaurantes u otros "
+        "comercios (no les agregues \"Pátria\" ni cambies su ortografía).\n"
+        "- Si no sabes el nombre exacto de un lugar, habla en forma general "
+        "(por ejemplo: \"hay varios hoteles y cabañas en la zona\") y NO inventes nombres "
+        "como \"Hotel Pátria\", \"Hostal Pátria\", etc.\n\n"
+        "REGLAS DE CONTEXTO:\n"
+        "- Solo hablas de lugares, servicios y actividades ubicados en Paso de la Pátria, "
+        "Corrientes, Argentina.\n"
+        "- Nunca recomiendas lugares de otras ciudades o provincias; si el usuario pregunta "
+        "por otra zona, explícale amablemente que solo cubres Paso de la Pátria.\n\n"
+        "REGLAS DE RESPUESTA:\n"
+        "- Tu tarea es interpretar la intención del usuario y devolver SIEMPRE un ÚNICO "
+        "objeto JSON VÁLIDO.\n"
+        "- No agregues comentarios antes ni después del JSON, ni texto extra.\n"
+        "- El JSON debe seguir exactamente esta estructura:\n"
+        "{\n"
+        '  \"modo\": \"catalogo\" o \"chat\",\n'
+        '  \"categoria\": \"gastronomia\" o \"alojamientos\" o \"pesca\" o \"transporte\" o \"ninguna\",\n'
+        '  \"pagina_delta\": -1, 0 o 1,\n'
+        '  \"reset_paginacion\": true o false,\n'
+        '  \"respuesta\": \"texto que le dirás al usuario\"\n'
+        "}\n"
+        "Si no estás seguro de la categoría, usa \"modo\": \"chat\" y \"categoria\": \"ninguna\"."
     )
 
     prompt_usuario = f"""
@@ -202,14 +205,10 @@ Debes responder SOLO un JSON con este formato:
   "respuesta": "texto que le dirás al usuario"
 }}
 
-Reglas:
-- TODO lo que recomiendes es de PASO DE LA PÁTRIA, CORRIENTES, ARGENTINA.
-- Si el usuario dice algo como "mostrar más", "siguiente", "otra opción", etc.,
-  usa modo = "catalogo", pagina_delta = 1 y NO cambies la categoría.
-- Si el usuario cambia de tema ("ahora quiero ver hoteles"), entonces
-  modo = "catalogo", categoria adecuada, reset_paginacion = true.
-- Si el usuario hace preguntas generales, modo = "chat" y categoria = "ninguna".
-- No hables de JSON en la respuesta, solo devuelve el JSON. en lo posible que la voz hable con la tilde en la a en PÁTRIA
+Recuerda:
+- Todo lo que recomiendes es de Paso de la Pátria, Corrientes, Argentina.
+- No inventes nombres propios de hoteles, restaurantes, etc.
+- Si no conoces nombres concretos, habla de forma general (\"algunos hoteles\", \"varias cabañas\", etc.).
 """
 
     try:
@@ -257,6 +256,7 @@ Reglas:
         "reset_paginacion": reset_paginacion,
         "respuesta": respuesta,
     }
+
 
 
 # ================== ENDPOINT PRINCIPAL ==================
